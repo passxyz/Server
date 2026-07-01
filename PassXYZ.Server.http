@@ -1,0 +1,6 @@
+@PassXYZ.Server_HostAddress = http://localhost:5182
+
+GET {{PassXYZ.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

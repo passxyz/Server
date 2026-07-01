@@ -1,0 +1,51 @@
+## .NET Core
+bin/
+obj/
+TestResults/
+*.log
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## NuGet
+*.nupkg
+NuGetPackages/
+*.nuget.props
+*.nuget.targets
+packages/
+
+## .NET Core tools
+.dotnet/
+tools/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+
+## Logs
+*.log
+*.txt
+
+## Environment files
+.env
+.env.local
+.env.*.local
+
+## Database files
+*.db
+*.sqlite
+*.kdbx
+
+## Publish
+publish/
+out/
+
+## Visual Studio
+*.cache
+ClientBin/
+_ReSharper*/
+*.ReSharper
+*.map
+*.trx
