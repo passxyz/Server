@@ -15,6 +15,14 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
     <PackageReference Include="PassXYZLib" Version="3.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <!-- 使用 SourceGear.sqlite3 替换 SQLitePCLRaw.lib.e_sqlite3（安全漏洞） -->
+    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
+    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="SourceGear.sqlite3" Version="3.50.4.5" />
+    <!-- 排除 EntityFrameworkCore.Sqlite 传递引入的漏洞原生库 -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.*">
+      <ExcludeAssets>all</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
