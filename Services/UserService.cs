@@ -5,6 +5,7 @@ using KeePassLib.Serialization;
 using PassXYZ.Server.DTOs.User;
 using PassXYZ.Server.Data;
 using PassXYZLib;
+using PassXYZ.Services;
 
 namespace PassXYZ.Server.Services;
 
@@ -78,7 +79,8 @@ public class UserService : IUserService
             Email = email,
             UserName = request.Username,
             CreatedAt = DateTime.UtcNow,
-            LastLogin = null
+            LastLogin = null,
+            IsDeviceLockEnabled = request.IsDeviceLockEnabled
         };
 
         _usersDbContext.Users.Add(user);
@@ -163,6 +165,9 @@ public class UserService : IUserService
     {
         try
         {
+            var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == username);
+            if (user == null) return;
+
             var vaultPath = GetVaultPath(username, fileType);
             var vaultsPath = Path.GetDirectoryName(vaultPath);
             if (!Directory.Exists(vaultsPath))
@@ -170,23 +175,49 @@ public class UserService : IUserService
                 Directory.CreateDirectory(vaultsPath!);
             }
 
-            var db = new PwDatabase();
-            var ioInfo = new IOConnectionInfo { Path = vaultPath };
+            // 设置PassXYZLib的DataFilePath，确保PassXYZLib.User使用正确的路径
+            PassXYZLib.PxDataFile.DataFilePath = vaultsPath!;
 
-            var compositeKey = new CompositeKey();
-            compositeKey.AddUserKey(new KcpPassword(masterPassword));
-
-            db.New(ioInfo, compositeKey);
+            var db = new PxDatabase();
+            if (user.IsDeviceLockEnabled)
+            {
+                // 创建设备锁数据库（会自动创建密钥文件）
+                // 对于设备锁，Path由PassXYZLib.User类基于用户名自动生成
+                var passxyzUser = new PassXYZLib.User
+                {
+                    Username = username,
+                    Password = masterPassword,
+                    IsDeviceLockEnabled = true
+                };
+                db.New(passxyzUser);
+            }
+            else
+            {
+                // 创建标准数据库
+                var ioInfo = new IOConnectionInfo { Path = vaultPath };
+                var compositeKey = new CompositeKey();
+                compositeKey.AddUserKey(new KcpPassword(masterPassword));
+                db.New(ioInfo, compositeKey);
+            }
+            
             db.Save(null);
             db.Close();
 
-            var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == username);
-            if (user != null)
+            // 更新用户配置
+            user.VaultFilePath = vaultPath;
+            user.DatabaseFileType = fileType == DatabaseFileType.PassXYZ ? "PassXYZ" : "KeePass";
+            _usersDbContext.SaveChanges();
+
+            // 打印创建成功的信息到控制台
+            Console.WriteLine($"数据库创建成功:");
+            Console.WriteLine($"  用户名: {username}");
+            Console.WriteLine($"  文件路径: {vaultPath}");
+            if (user.IsDeviceLockEnabled)
             {
-                user.VaultFilePath = vaultPath;
-                user.DatabaseFileType = fileType == DatabaseFileType.PassXYZ ? "PassXYZ" : "KeePass";
-                _usersDbContext.SaveChanges();
+                var keyFilePath = GetKeyFilePath(username);
+                Console.WriteLine($"  密钥文件: {keyFilePath}");
             }
+            Console.WriteLine($"  数据库类型: {user.DatabaseFileType}");
         }
         catch
         {

@@ -51,22 +51,22 @@ public class VaultSessionManager : IVaultSessionManager, IDisposable
                 return false;
             }
 
-            var ioInfo = new IOConnectionInfo { Path = vaultPath };
-            var db = new PwDatabase();
-            var compositeKey = new CompositeKey();
-            compositeKey.AddUserKey(new KcpPassword(masterPassword));
+            // 设置PassXYZLib的数据路径，确保设备锁文件能够正确找到
+            var vaultsPath = Path.GetDirectoryName(vaultPath);
+            PassXYZLib.PxDataFile.DataFilePath = vaultsPath!;
 
-            if (IsDeviceLockEnabled(vaultPath))
+            // 创建设备锁用户对象
+            var passxyzUser = new PassXYZLib.User
             {
-                var keyFilePath = GetKeyFilePath(username);
-                if (File.Exists(keyFilePath))
-                {
-                    var keyFileIoInfo = new IOConnectionInfo { Path = keyFilePath };
-                    compositeKey.AddUserKey(new KcpKeyFile(keyFileIoInfo));
-                }
-            }
+                Username = username,
+                Password = masterPassword,
+                IsDeviceLockEnabled = IsDeviceLockEnabled(vaultPath)
+            };
 
-            db.Open(ioInfo, compositeKey, null);
+            var db = new PassXYZLib.PxDatabase();
+            
+            // 使用PassXYZLib.User对象的Open方法，它会内部处理设备锁逻辑
+            db.Open(passxyzUser);
             _sessions.TryAdd(username, db);
 
             using (var scope = _serviceProvider.CreateScope())
