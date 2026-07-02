@@ -4,6 +4,7 @@ using KeePassLib.Security;
 using KeePassLib.Serialization;
 using PassXYZ.Server.DTOs.User;
 using PassXYZ.Server.Data;
+using PassXYZLib;
 
 namespace PassXYZ.Server.Services;
 
@@ -37,7 +38,7 @@ public class UserService : IUserService
             Email = user.Email,
             CreatedAt = user.CreatedAt,
             LastLogin = user.LastLogin ?? DateTime.MinValue,
-            IsDeviceLockEnabled = false
+            IsDeviceLockEnabled = user.IsDeviceLockEnabled
         };
     }
 
@@ -55,7 +56,7 @@ public class UserService : IUserService
             Email = user.Email,
             CreatedAt = user.CreatedAt,
             LastLogin = user.LastLogin ?? DateTime.MinValue,
-            IsDeviceLockEnabled = false
+            IsDeviceLockEnabled = user.IsDeviceLockEnabled
         };
     }
 
@@ -71,7 +72,7 @@ public class UserService : IUserService
             return false;
         }
 
-        var user = new User
+        var user = new Data.User
         {
             UserId = Guid.NewGuid().ToString(),
             Email = email,
@@ -158,11 +159,11 @@ public class UserService : IUserService
         await _vaultSessionManager.CloseSession(username);
     }
 
-    private async Task CreateVault(string username, string masterPassword)
+    private async Task CreateVault(string username, string masterPassword, DatabaseFileType fileType = DatabaseFileType.PassXYZ)
     {
         try
         {
-            var vaultPath = GetVaultPath(username);
+            var vaultPath = GetVaultPath(username, fileType);
             var vaultsPath = Path.GetDirectoryName(vaultPath);
             if (!Directory.Exists(vaultsPath))
             {
@@ -178,6 +179,14 @@ public class UserService : IUserService
             db.New(ioInfo, compositeKey);
             db.Save(null);
             db.Close();
+
+            var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == username);
+            if (user != null)
+            {
+                user.VaultFilePath = vaultPath;
+                user.DatabaseFileType = fileType == DatabaseFileType.PassXYZ ? "PassXYZ" : "KeePass";
+                _usersDbContext.SaveChanges();
+            }
         }
         catch
         {
@@ -188,10 +197,31 @@ public class UserService : IUserService
     {
         try
         {
-            var vaultPath = GetVaultPath(username);
-            if (File.Exists(vaultPath))
+            var passxyzPath = GetVaultPath(username, DatabaseFileType.PassXYZ);
+            if (File.Exists(passxyzPath))
             {
-                File.Delete(vaultPath);
+                File.Delete(passxyzPath);
+            }
+
+            var keepassPath = GetVaultPath(username, DatabaseFileType.KeePass);
+            if (File.Exists(keepassPath))
+            {
+                File.Delete(keepassPath);
+            }
+
+            var keyFilePath = GetKeyFilePath(username);
+            if (File.Exists(keyFilePath))
+            {
+                File.Delete(keyFilePath);
+            }
+
+            var legacyPath = Path.Combine(
+                _configuration["Data:VaultsPath"] ?? "./data/vaults",
+                $"{username}.kdbx"
+            );
+            if (File.Exists(legacyPath))
+            {
+                File.Delete(legacyPath);
             }
 
             var userDbPath = GetUserDbPath(username);
@@ -205,10 +235,39 @@ public class UserService : IUserService
         }
     }
 
-    private string GetVaultPath(string username)
+    private string GetVaultPath(string username, DatabaseFileType fileType = DatabaseFileType.PassXYZ)
     {
-        var vaultsPath = _configuration["Data:VaultsPath"] ?? "/data/vaults";
-        return Path.Combine(vaultsPath, $"{username}.kdbx");
+        var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == username);
+        bool isDeviceLockEnabled = user?.IsDeviceLockEnabled ?? false;
+
+        var vaultsPath = _configuration["Data:VaultsPath"] ?? "./data/vaults";
+        var encodedUsername = Base58CheckEncoding.ToBase58String(username);
+
+        PxFileType pxFileType;
+        if (fileType == DatabaseFileType.KeePass)
+        {
+            pxFileType = PxFileType.PwData;
+        }
+        else
+        {
+            pxFileType = isDeviceLockEnabled ? PxFileType.PxDataEx : PxFileType.PxData;
+        }
+
+        var head = PxFileTypeInfo.GetHead(pxFileType);
+        var tail = PxFileTypeInfo.GetTail(pxFileType);
+
+        return Path.Combine(vaultsPath, $"{head}{encodedUsername}{tail}");
+    }
+
+    private string GetKeyFilePath(string username)
+    {
+        var vaultsPath = _configuration["Data:VaultsPath"] ?? "./data/vaults";
+
+        var head = PxFileTypeInfo.GetHead(PxFileType.PxKeyFile);
+        var tail = PxFileTypeInfo.GetTail(PxFileType.PxKeyFile);
+        var encodedUsername = Base58CheckEncoding.ToBase58String(username);
+
+        return Path.Combine(vaultsPath, $"{head}{encodedUsername}{tail}");
     }
 
     private string GetUserDbPath(string username)

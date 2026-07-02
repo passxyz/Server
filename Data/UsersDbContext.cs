@@ -54,6 +54,9 @@ public class User
     public string UserName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLogin { get; set; }
+    public bool IsDeviceLockEnabled { get; set; } = false;
+    public string VaultFilePath { get; set; } = string.Empty;
+    public string DatabaseFileType { get; set; } = "PassXYZ";
 }
 
 public class VaultMetadata
