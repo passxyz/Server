@@ -32,9 +32,9 @@ using (var scope = app.Services.CreateScope())
 var config = app.Services.GetRequiredService<IConfiguration>();
 var paths = new (string Key, string Path)[]
 {
-    ("Data:UsersDbPath", config["Data:UsersDbPath"] ?? "./data/users.db"),
-    ("Data:VaultsPath", config["Data:VaultsPath"] ?? "./data/vaults"),
-    ("Data:UserDatabasesPath", config["Data:UserDatabasesPath"] ?? "./data/users"),
+    ("Data:UsersDbPath", config["Data:UsersDbPath"] ?? "./.data/users.db"),
+    ("Data:VaultsPath", config["Data:VaultsPath"] ?? "./.data/vaults"),
+    ("Data:UserDatabasesPath", config["Data:UserDatabasesPath"] ?? "./.data/users"),
 };
 foreach (var (key, path) in paths)
 {

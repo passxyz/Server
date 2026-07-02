@@ -38,6 +38,9 @@ tools/
 *.sqlite
 *.kdbx
 
+## Data directories
+.data/
+
 ## Publish
 publish/
 out/
