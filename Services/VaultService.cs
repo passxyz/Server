@@ -4,6 +4,7 @@ using KeePassLib.Security;
 using KeePassLib.Serialization;
 using PassXYZ.Server.DTOs.Vault;
 using PassXYZLib;
+using Microsoft.AspNetCore.Http;
 
 namespace PassXYZ.Server.Services;
 
@@ -250,6 +251,24 @@ public class VaultService : IVaultService
             entry.Strings.Set(PwDefs.NotesField, new ProtectedString(true, request.Notes));
         }
 
+        if (!string.IsNullOrEmpty(request.OtpUrl))
+        {
+            entry.Strings.Set("OTP", new ProtectedString(true, request.OtpUrl));
+        }
+
+        if (request.CustomFields != null)
+        {
+            foreach (var (key, value) in request.CustomFields)
+            {
+                entry.Strings.Set(key, new ProtectedString(true, value));
+            }
+        }
+
+        if (!string.IsNullOrEmpty(request.Icon))
+        {
+            entry.IconId = (PwIcon)uint.Parse(request.Icon);
+        }
+
         await SaveDatabase(db);
 
         return true;
@@ -270,6 +289,12 @@ public class VaultService : IVaultService
         }
 
         group.Name = request.Name;
+
+        if (!string.IsNullOrEmpty(request.Icon))
+        {
+            group.IconId = (PwIcon)uint.Parse(request.Icon);
+        }
+
         await SaveDatabase(db);
 
         return true;
@@ -339,6 +364,170 @@ public class VaultService : IVaultService
         {
             return false;
         }
+    }
+
+    public Task<List<IconDto>> GetIcons()
+    {
+        var icons = new List<IconDto>();
+        foreach (var icon in Enum.GetValues(typeof(PwIcon)).Cast<PwIcon>())
+        {
+            icons.Add(new IconDto
+            {
+                Id = (int)icon,
+                Name = icon.ToString()
+            });
+        }
+        return Task.FromResult(icons);
+    }
+
+    public async Task<List<AttachmentDto>> GetAttachments(string username, string entryId)
+    {
+        var db = await _vaultSessionManager.GetSession(username);
+        if (db == null)
+        {
+            return new List<AttachmentDto>();
+        }
+
+        var uuid = new PwUuid(Guid.Parse(entryId).ToByteArray());
+        var entry = db.RootGroup.FindEntry(uuid, true);
+        if (entry == null)
+        {
+            return new List<AttachmentDto>();
+        }
+
+        var attachments = new List<AttachmentDto>();
+        foreach (var binary in entry.Binaries)
+        {
+            var data = binary.Value.ReadData();
+            var extension = Path.GetExtension(binary.Key)?.ToLowerInvariant();
+            var isImage = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".svg" or ".webp";
+
+            attachments.Add(new AttachmentDto
+            {
+                Id = binary.Key,
+                Name = binary.Key,
+                Size = data.Length,
+                ContentType = GetContentType(extension),
+                IsImage = isImage
+            });
+        }
+
+        return attachments;
+    }
+
+    public async Task<byte[]?> DownloadAttachment(string username, string entryId, string attachmentId)
+    {
+        var db = await _vaultSessionManager.GetSession(username);
+        if (db == null)
+        {
+            return null;
+        }
+
+        var uuid = new PwUuid(Guid.Parse(entryId).ToByteArray());
+        var entry = db.RootGroup.FindEntry(uuid, true);
+        if (entry == null)
+        {
+            return null;
+        }
+
+        foreach (var binary in entry.Binaries)
+        {
+            if (binary.Key == attachmentId)
+            {
+                return binary.Value.ReadData();
+            }
+        }
+
+        return null;
+    }
+
+    public async Task<string> UploadAttachment(string username, string entryId, IFormFile file)
+    {
+        var db = await _vaultSessionManager.GetSession(username);
+        if (db == null)
+        {
+            throw new InvalidOperationException("Session not found");
+        }
+
+        var uuid = new PwUuid(Guid.Parse(entryId).ToByteArray());
+        var entry = db.RootGroup.FindEntry(uuid, true);
+        if (entry == null)
+        {
+            throw new InvalidOperationException("Entry not found");
+        }
+
+        using (var stream = new MemoryStream())
+        {
+            await file.CopyToAsync(stream);
+            var data = stream.ToArray();
+            var protectedBinary = new ProtectedBinary(false, data);
+            
+            string attachmentId = file.FileName;
+            int counter = 1;
+            while (entry.Binaries.Any(b => b.Key == attachmentId))
+            {
+                var extension = Path.GetExtension(file.FileName);
+                var nameWithoutExtension = Path.GetFileNameWithoutExtension(file.FileName);
+                attachmentId = $"{nameWithoutExtension}_{counter}{extension}";
+                counter++;
+            }
+
+            entry.Binaries.Set(attachmentId, protectedBinary);
+            await SaveDatabase(db);
+
+            return attachmentId;
+        }
+    }
+
+    public async Task<bool> DeleteAttachment(string username, string entryId, string attachmentId)
+    {
+        var db = await _vaultSessionManager.GetSession(username);
+        if (db == null)
+        {
+            return false;
+        }
+
+        var uuid = new PwUuid(Guid.Parse(entryId).ToByteArray());
+        var entry = db.RootGroup.FindEntry(uuid, true);
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (entry.Binaries.Remove(attachmentId))
+        {
+            await SaveDatabase(db);
+            return true;
+        }
+
+        return false;
+    }
+
+    private string GetContentType(string? extension)
+    {
+        var contentTypeMap = new Dictionary<string, string>
+        {
+            { ".png", "image/png" },
+            { ".jpg", "image/jpeg" },
+            { ".jpeg", "image/jpeg" },
+            { ".gif", "image/gif" },
+            { ".bmp", "image/bmp" },
+            { ".svg", "image/svg+xml" },
+            { ".webp", "image/webp" },
+            { ".pdf", "application/pdf" },
+            { ".txt", "text/plain" },
+            { ".doc", "application/msword" },
+            { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            { ".xls", "application/vnd.ms-excel" },
+            { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            { ".zip", "application/zip" },
+            { ".rar", "application/vnd.rar" },
+            { ".7z", "application/x-7z-compressed" }
+        };
+
+        return contentTypeMap.TryGetValue(extension ?? string.Empty, out var contentType) 
+            ? contentType 
+            : "application/octet-stream";
     }
 
     private PwGroup? GetGroupById(KeePassLib.PwDatabase db, string groupId)
@@ -417,6 +606,7 @@ public class VaultService : IVaultService
             Email = entry.Strings.ReadSafe("Email"),
             Mobile = entry.Strings.ReadSafe("Mobile"),
             Notes = entry.Strings.ReadSafe(PwDefs.NotesField),
+            OtpUrl = entry.Strings.ReadSafe("OTP"),
             CustomFields = customFields.Count > 0 ? customFields : null
         };
     }

@@ -71,4 +71,18 @@ public class UserControllerTests : IClassFixture<IntegrationTestFactory>
 
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task UpdateProfile_WithoutToken_ShouldReturnUnauthorized()
+    {
+        var request = new UpdateProfileRequest
+        {
+            IsDeviceLockEnabled = true
+        };
+
+        var response = await _client.PutAsync("/api/user/profile",
+            new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"));
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

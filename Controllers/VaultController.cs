@@ -174,4 +174,70 @@ public class VaultController : ControllerBase
 
         return Ok();
     }
+
+    [HttpGet("icons")]
+    public async Task<IActionResult> GetIcons()
+    {
+        var icons = await _vaultService.GetIcons();
+        return Ok(icons);
+    }
+
+    [HttpGet("entries/{entryId}/attachments")]
+    public async Task<IActionResult> GetAttachments(string entryId)
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var attachments = await _vaultService.GetAttachments(username, entryId);
+        return Ok(attachments);
+    }
+
+    [HttpGet("entries/{entryId}/attachments/{attachmentId}")]
+    public async Task<IActionResult> DownloadAttachment(string entryId, string attachmentId)
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var data = await _vaultService.DownloadAttachment(username, entryId, attachmentId);
+        if (data == null) return NotFound();
+
+        var attachments = await _vaultService.GetAttachments(username, entryId);
+        var attachment = attachments.FirstOrDefault(a => a.Id == attachmentId);
+
+        return File(data, attachment?.ContentType ?? "application/octet-stream", attachment?.Name ?? attachmentId);
+    }
+
+    [HttpPost("entries/{entryId}/attachments")]
+    public async Task<IActionResult> UploadAttachment(string entryId, IFormFile file)
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded");
+        }
+
+        try
+        {
+            var attachmentId = await _vaultService.UploadAttachment(username, entryId, file);
+            return CreatedAtAction(nameof(DownloadAttachment), new { entryId, attachmentId }, new { Id = attachmentId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("entries/{entryId}/attachments/{attachmentId}")]
+    public async Task<IActionResult> DeleteAttachment(string entryId, string attachmentId)
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var result = await _vaultService.DeleteAttachment(username, entryId, attachmentId);
+        if (!result) return NotFound();
+
+        return Ok();
+    }
 }

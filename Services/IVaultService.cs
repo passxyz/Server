@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using PassXYZ.Server.DTOs.Vault;
 
 namespace PassXYZ.Server.Services;
@@ -16,4 +17,9 @@ public interface IVaultService
     Task<bool> DeleteEntry(string username, string entryId);
     Task<bool> DeleteGroup(string username, string groupId);
     Task<bool> ChangeMasterPassword(string username, string newPassword);
+    Task<List<IconDto>> GetIcons();
+    Task<List<AttachmentDto>> GetAttachments(string username, string entryId);
+    Task<byte[]?> DownloadAttachment(string username, string entryId, string attachmentId);
+    Task<string> UploadAttachment(string username, string entryId, IFormFile file);
+    Task<bool> DeleteAttachment(string username, string entryId, string attachmentId);
 }

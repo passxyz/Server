@@ -11,6 +11,7 @@ public interface IUserService
     Task<List<string>> GetUsersList();
     Task<LoginResult> Login(LoginRequest request, string email, string ipAddress);
     Task Logout(string username);
+    Task<bool> UpdateUserProfile(string username, UpdateProfileRequest request);
 }
 
 public class LoginResult

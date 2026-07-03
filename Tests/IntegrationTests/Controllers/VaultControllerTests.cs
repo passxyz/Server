@@ -98,4 +98,49 @@ public class VaultControllerTests : IClassFixture<IntegrationTestFactory>
 
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetIcons_WithoutToken_ShouldReturnUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/vault/icons");
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAttachments_WithoutToken_ShouldReturnUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/vault/entries/test-entry-id/attachments");
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DownloadAttachment_WithoutToken_ShouldReturnUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/vault/entries/test-entry-id/attachments/test-attachment");
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadAttachment_WithoutToken_ShouldReturnUnauthorized()
+    {
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(new byte[] { 0x01, 0x02, 0x03 });
+        fileContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("image/png");
+        content.Add(fileContent, "file", "test.png");
+
+        var response = await _client.PostAsync("/api/vault/entries/test-entry-id/attachments", content);
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAttachment_WithoutToken_ShouldReturnUnauthorized()
+    {
+        var response = await _client.DeleteAsync("/api/vault/entries/test-entry-id/attachments/test-attachment");
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

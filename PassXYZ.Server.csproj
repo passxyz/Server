@@ -13,7 +13,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.11.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
-    <PackageReference Include="PassXYZLib" Version="3.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <!-- 使用 SourceGear.sqlite3 替换 SQLitePCLRaw.lib.e_sqlite3（安全漏洞） -->
     <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
@@ -23,6 +22,10 @@
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.*">
       <ExcludeAssets>all</ExcludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PassXYZLib\PassXYZLib\PassXYZLib.csproj" />
   </ItemGroup>
 
 </Project>

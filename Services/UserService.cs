@@ -161,6 +161,20 @@ public class UserService : IUserService
         await _vaultSessionManager.CloseSession(username);
     }
 
+    public async Task<bool> UpdateUserProfile(string username, UpdateProfileRequest request)
+    {
+        var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == username);
+        if (user == null) return false;
+
+        if (request.IsDeviceLockEnabled.HasValue)
+        {
+            user.IsDeviceLockEnabled = request.IsDeviceLockEnabled.Value;
+        }
+
+        await _usersDbContext.SaveChangesAsync();
+        return true;
+    }
+
     private async Task CreateVault(string username, string masterPassword, DatabaseFileType fileType = DatabaseFileType.PassXYZ)
     {
         try

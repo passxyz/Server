@@ -126,6 +126,18 @@ public class UserController : ControllerBase
         return Ok();
     }
 
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var result = await _userService.UpdateUserProfile(username, request);
+        if (!result) return NotFound();
+
+        return Ok();
+    }
+
     [HttpGet("list")]
     public async Task<IActionResult> GetUsersList()
     {

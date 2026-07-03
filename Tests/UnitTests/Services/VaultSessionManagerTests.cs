@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PassXYZ.Server.Services;
 using PassXYZ.Server.Data;
+using PassXYZLib;
 
 namespace PassXYZ.Server.Tests.Services;
 
@@ -13,10 +14,13 @@ public class VaultSessionManagerTests : IDisposable
 
     public VaultSessionManagerTests()
     {
+        var dbPath = Path.Combine(Path.GetTempPath(), "passxyz_test", Guid.NewGuid().ToString() + ".db");
+        
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Data:VaultsPath"] = Path.Combine(Path.GetTempPath(), "passxyz_test_vaults")
+                ["Data:VaultsPath"] = Path.Combine(Path.GetTempPath(), "passxyz_test_vaults"),
+                ["Data:UsersDbPath"] = dbPath
             })
             .Build();
 
@@ -26,8 +30,24 @@ public class VaultSessionManagerTests : IDisposable
 
         var serviceProvider = services.BuildServiceProvider();
 
+        using (var scope = serviceProvider.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+            dbContext.Database.EnsureCreated();
+            dbContext.Users.Add(new Data.User
+            {
+                UserId = Guid.NewGuid().ToString(),
+                UserName = _testUsername,
+                Email = "test@example.com",
+                CreatedAt = DateTime.UtcNow
+            });
+            dbContext.SaveChanges();
+        }
+
         _sessionManager = new VaultSessionManager(config, serviceProvider);
-        _testVaultPath = Path.Combine(config["Data:VaultsPath"] ?? "/tmp", $"{_testUsername}.kdbx");
+        
+        var vaultsPath = config["Data:VaultsPath"] ?? "./data/vaults";
+        _testVaultPath = Path.Combine(vaultsPath, $"{_testUsername}.kdbx");
     }
 
     public void Dispose()
