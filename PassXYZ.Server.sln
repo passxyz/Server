@@ -1,0 +1,48 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PassXYZ.Server", "PassXYZ.Server.csproj", "{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PassXYZ.Server.Tests", "Tests\UnitTests\PassXYZ.Server.Tests.csproj", "{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PassXYZ.Server.IntegrationTests", "Tests\IntegrationTests\PassXYZ.Server.IntegrationTests.csproj", "{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|linux = Debug|linux
+		Release|Any CPU = Release|Any CPU
+		Release|linux = Release|linux
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Debug|linux.ActiveCfg = Debug|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Debug|linux.Build.0 = Debug|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Release|linux.ActiveCfg = Release|Any CPU
+		{B5A6F7E8-2E4B-4D3A-8A1C-8D9E5F6B7C8D}.Release|linux.Build.0 = Release|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Debug|linux.ActiveCfg = Debug|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Debug|linux.Build.0 = Debug|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Release|linux.ActiveCfg = Release|Any CPU
+		{C6B7G8F9-3F5C-5E4D-9E5F-7A6B8C9D0E1F}.Release|linux.Build.0 = Release|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Debug|linux.ActiveCfg = Debug|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Debug|linux.Build.0 = Debug|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Release|linux.ActiveCfg = Release|Any CPU
+		{D7C8H9G0-4G6D-6F5E-0F6G-8B7A9C0D1E2F}.Release|linux.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using PassXYZ.Server.Services;
+using PassXYZ.Server.Data;
 
 namespace PassXYZ.Server.Tests.Services;
 
@@ -12,13 +14,19 @@ public class VaultSessionManagerTests : IDisposable
     public VaultSessionManagerTests()
     {
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string>
+            .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Data:VaultsPath"] = Path.Combine(Path.GetTempPath(), "passxyz_test_vaults")
             })
             .Build();
 
-        _sessionManager = new VaultSessionManager(config);
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config)
+            .AddDbContext<UsersDbContext>();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        _sessionManager = new VaultSessionManager(config, serviceProvider);
         _testVaultPath = Path.Combine(config["Data:VaultsPath"] ?? "/tmp", $"{_testUsername}.kdbx");
     }
 
