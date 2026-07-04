@@ -573,7 +573,8 @@ public class VaultService : IVaultService
             LastModified = group.LastModificationTime,
             Icon = group.IconId.ToString(),
             ChildCount = (int)(group.Groups.UCount + group.Entries.UCount),
-            Children = childItems
+            Children = childItems,
+            ParentId = group.ParentGroup != null ? new Guid(group.ParentGroup.Uuid.UuidBytes).ToString() : null
         };
     }
 
@@ -607,7 +608,8 @@ public class VaultService : IVaultService
             Mobile = entry.Strings.ReadSafe("Mobile"),
             Notes = entry.Strings.ReadSafe(PwDefs.NotesField),
             OtpUrl = entry.Strings.ReadSafe("OTP"),
-            CustomFields = customFields.Count > 0 ? customFields : null
+            CustomFields = customFields.Count > 0 ? customFields : null,
+            GroupId = entry.ParentGroup != null ? new Guid(entry.ParentGroup.Uuid.UuidBytes).ToString() : null
         };
     }
 }
