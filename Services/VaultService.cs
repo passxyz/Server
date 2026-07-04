@@ -572,6 +572,7 @@ public class VaultService : IVaultService
             IsGroup = true,
             LastModified = group.LastModificationTime,
             Icon = group.IconId.ToString(),
+            Description = string.Empty,
             ChildCount = (int)(group.Groups.UCount + group.Entries.UCount),
             Children = childItems,
             ParentId = group.ParentGroup != null ? new Guid(group.ParentGroup.Uuid.UuidBytes).ToString() : null
@@ -593,6 +594,9 @@ public class VaultService : IVaultService
             }
         }
 
+        var notes = entry.Strings.ReadSafe(PwDefs.NotesField);
+        var description = string.IsNullOrEmpty(notes) ? null : notes.Split('\n')[0].Trim();
+
         return new EntryDto
         {
             Id = new Guid(entry.Uuid.UuidBytes).ToString(),
@@ -601,12 +605,13 @@ public class VaultService : IVaultService
             IsGroup = false,
             LastModified = entry.LastModificationTime,
             Icon = entry.IconId.ToString(),
+            Description = description,
             Username = entry.Strings.ReadSafe(PwDefs.UserNameField),
             Password = entry.Strings.ReadSafe(PwDefs.PasswordField),
             Url = entry.Strings.ReadSafe(PwDefs.UrlField),
             Email = entry.Strings.ReadSafe("Email"),
             Mobile = entry.Strings.ReadSafe("Mobile"),
-            Notes = entry.Strings.ReadSafe(PwDefs.NotesField),
+            Notes = notes,
             OtpUrl = entry.Strings.ReadSafe("OTP"),
             CustomFields = customFields.Count > 0 ? customFields : null,
             GroupId = entry.ParentGroup != null ? new Guid(entry.ParentGroup.Uuid.UuidBytes).ToString() : null
