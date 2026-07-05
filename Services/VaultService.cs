@@ -581,39 +581,96 @@ public class VaultService : IVaultService
 
     private EntryDto ConvertEntryToDto(PwEntry entry)
     {
-        var customFields = new Dictionary<string, string>();
-        foreach (var kvp in entry.Strings)
-        {
-            if (kvp.Key != PwDefs.TitleField && 
-                kvp.Key != PwDefs.UserNameField && 
-                kvp.Key != PwDefs.PasswordField && 
-                kvp.Key != PwDefs.UrlField && 
-                kvp.Key != PwDefs.NotesField)
-            {
-                customFields[kvp.Key] = kvp.Value.ReadString();
-            }
-        }
+        var itemSubType = GetItemSubType(entry);
+        var isPxEntry = PxDefs.IsPxEntry(entry);
 
-        var notes = entry.Strings.ReadSafe(PwDefs.NotesField);
-
-        return new EntryDto
+        var entryDto = new EntryDto
         {
             Id = new Guid(entry.Uuid.UuidBytes).ToString(),
             Name = entry.Strings.ReadSafe(PwDefs.TitleField),
-            Type = ItemSubType.Entry,
+            Type = itemSubType,
             IsGroup = false,
             LastModified = entry.LastModificationTime,
             Icon = entry.IconId.ToString(),
             Description = entry.Description,
-            Username = entry.Strings.ReadSafe(PwDefs.UserNameField),
-            Password = entry.Strings.ReadSafe(PwDefs.PasswordField),
-            Url = entry.Strings.ReadSafe(PwDefs.UrlField),
-            Email = entry.Strings.ReadSafe("Email"),
-            Mobile = entry.Strings.ReadSafe("Mobile"),
-            Notes = notes,
-            OtpUrl = entry.Strings.ReadSafe("OTP"),
-            CustomFields = customFields.Count > 0 ? customFields : null,
+            Notes = entry.Strings.ReadSafe(PwDefs.NotesField),
+            OtpUrl = GetOtpUrl(entry),
             GroupId = entry.ParentGroup != null ? new Guid(entry.ParentGroup.Uuid.UuidBytes).ToString() : null
         };
+
+        var customFields = new Dictionary<string, string>();
+        var fields = new List<FieldDto>();
+
+        foreach (var kvp in entry.Strings)
+        {
+            if (kvp.Key == PwDefs.TitleField || kvp.Key == PwDefs.NotesField)
+            {
+                continue;
+            }
+
+            var decodedKey = isPxEntry ? PxDefs.DecodeKey(kvp.Key) : kvp.Key;
+            var value = kvp.Value.ReadString();
+            var isProtected = kvp.Value.IsProtected;
+
+            var fieldDto = new FieldDto
+            {
+                Key = decodedKey,
+                Value = value,
+                IsProtected = isProtected,
+                IsBinary = false,
+                EncodedKey = isPxEntry ? kvp.Key : null
+            };
+            fields.Add(fieldDto);
+
+            switch (decodedKey)
+            {
+                case PwDefs.UserNameField:
+                    entryDto.Username = value;
+                    break;
+                case PwDefs.PasswordField:
+                    entryDto.Password = value;
+                    break;
+                case PwDefs.UrlField:
+                    entryDto.Url = value;
+                    break;
+                case PxDefs.EmailField:
+                    entryDto.Email = value;
+                    break;
+                case PxDefs.MobileField:
+                    entryDto.Mobile = value;
+                    break;
+                default:
+                    customFields[decodedKey] = value;
+                    break;
+            }
+        }
+
+        entryDto.Fields = fields.Count > 0 ? fields : null;
+        entryDto.CustomFields = customFields.Count > 0 ? customFields : null;
+
+        return entryDto;
+    }
+
+    private ItemSubType GetItemSubType(PwEntry entry)
+    {
+        if (PxDefs.IsPxEntry(entry))
+        {
+            return ItemSubType.PxEntry;
+        }
+        else if (PxDefs.IsNotes(entry))
+        {
+            return ItemSubType.Notes;
+        }
+        return ItemSubType.Entry;
+    }
+
+    private string? GetOtpUrl(PwEntry entry)
+    {
+        var otpUrl = entry.CustomData.Get(PxDefs.PxCustomDataOtpUrl);
+        if (!string.IsNullOrEmpty(otpUrl))
+        {
+            return otpUrl;
+        }
+        return entry.Strings.ReadSafe("OTP");
     }
 }

@@ -10,5 +10,6 @@ public class EntryDto : ItemDto
     public string? Notes { get; set; }
     public string? OtpUrl { get; set; }
     public Dictionary<string, string>? CustomFields { get; set; }
+    public List<FieldDto>? Fields { get; set; }
     public string? GroupId { get; set; }
 }
