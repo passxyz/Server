@@ -1,0 +1,17 @@
+services:
+  passxyz-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: passxyz-server
+    ports:
+      - "5182:8080"
+    volumes:
+      - ./.data:/app/.data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Jwt__Secret=${JWT_SECRET:-change-this-to-a-real-secret-in-production}
+      - Jwt__ExpiresInMinutes=${JWT_EXPIRES_IN:-60}
+      - Cloudflare__Audience=${CF_AUDIENCE:-your-cloudflare-audience}
+      - Cloudflare__JwksUrl=${CF_JWKS_URL:-https://your-domain.cloudflareaccess.com/cdn-cgi/access/certs}
+    restart: unless-stopped
