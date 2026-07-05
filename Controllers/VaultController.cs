@@ -71,6 +71,16 @@ public class VaultController : ControllerBase
         return Ok(entries);
     }
 
+    [HttpGet("otp")]
+    public async Task<IActionResult> GetOtpEntries()
+    {
+        var username = HttpContext.Items["Username"] as string;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var entries = await _vaultService.GetOtpEntries(username);
+        return Ok(entries);
+    }
+
     [HttpPost("groups/{groupId}/entries")]
     public async Task<IActionResult> CreateEntry(string groupId, [FromBody] NewEntryRequest request)
     {

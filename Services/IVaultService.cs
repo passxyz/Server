@@ -10,6 +10,7 @@ public interface IVaultService
     Task<EntryDto?> GetEntry(string username, string entryId);
     Task<GroupDto?> GetGroup(string username, string groupId);
     Task<List<EntryDto>> SearchEntries(string username, string keyword);
+    Task<List<EntryDto>> GetOtpEntries(string username);
     Task<string> CreateEntry(string username, string groupId, NewEntryRequest request);
     Task<string> CreateGroup(string username, string parentGroupId, NewGroupRequest request);
     Task<bool> UpdateEntry(string username, string entryId, EntryDto request);

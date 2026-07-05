@@ -121,6 +121,20 @@ public class VaultService : IVaultService
         return searchResults;
     }
 
+    public async Task<List<EntryDto>> GetOtpEntries(string username)
+    {
+        var db = await _vaultSessionManager.GetSession(username);
+        if (db == null)
+        {
+            return new List<EntryDto>();
+        }
+
+        return db.RootGroup.GetEntries(true)
+            .Where(e => !string.IsNullOrEmpty(GetOtpUrl(e)))
+            .Select(e => ConvertEntryToDto(e))
+            .ToList();
+    }
+
     public async Task<string> CreateEntry(string username, string groupId, NewEntryRequest request)
     {
         var db = await _vaultSessionManager.GetSession(username);
