@@ -196,7 +196,6 @@ public class UserService : IUserService
             if (user.IsDeviceLockEnabled)
             {
                 // 创建设备锁数据库（会自动创建密钥文件）
-                // 对于设备锁，Path由PassXYZLib.User类基于用户名自动生成
                 var passxyzUser = new PassXYZLib.User
                 {
                     Username = username,
@@ -216,6 +215,17 @@ public class UserService : IUserService
             
             db.Save(null);
             db.Close();
+
+            // PassXYZLib.User creates the file with pass_d_ prefix, rename to pass_e_ after close
+            if (user.IsDeviceLockEnabled)
+            {
+                var encodedUsername = Base58CheckEncoding.ToBase58String(username);
+                var actualDbPath = Path.Combine(vaultsPath!, $"pass_d_{encodedUsername}.xyz");
+                if (File.Exists(actualDbPath) && actualDbPath != vaultPath)
+                {
+                    File.Move(actualDbPath, vaultPath, true);
+                }
+            }
 
             // 更新用户配置
             user.VaultFilePath = vaultPath;
