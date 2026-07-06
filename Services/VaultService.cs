@@ -36,11 +36,11 @@ public class VaultService : IVaultService
         var items = new List<ItemDto>();
         foreach (var g in group.Groups)
         {
-            items.Add(ConvertGroupToDto(g));
+            items.Add(ConvertGroupToDto(db, g));
         }
         foreach (var e in group.Entries)
         {
-            items.Add(ConvertEntryToDto(e));
+            items.Add(ConvertEntryToDto(db, e));
         }
         return items;
     }
@@ -58,13 +58,13 @@ public class VaultService : IVaultService
         var entry = db.RootGroup.FindEntry(uuid, true);
         if (entry != null)
         {
-            return ConvertEntryToDto(entry);
+            return ConvertEntryToDto(db, entry);
         }
 
         var group = db.RootGroup.FindGroup(uuid, true);
         if (group != null)
         {
-            return ConvertGroupToDto(group);
+            return ConvertGroupToDto(db, group);
         }
 
         return null;
@@ -81,7 +81,7 @@ public class VaultService : IVaultService
         var uuid = new PwUuid(Guid.Parse(entryId).ToByteArray());
         var entry = db.RootGroup.FindEntry(uuid, true);
         
-        return entry != null ? ConvertEntryToDto(entry) : null;
+        return entry != null ? ConvertEntryToDto(db, entry) : null;
     }
 
     public async Task<GroupDto?> GetGroup(string username, string groupId)
@@ -93,7 +93,7 @@ public class VaultService : IVaultService
         }
 
         var group = GetGroupById(db, groupId);
-        return group != null ? ConvertGroupToDto(group) as GroupDto : null;
+        return group != null ? ConvertGroupToDto(db, group) as GroupDto : null;
     }
 
     public async Task<List<EntryDto>> SearchEntries(string username, string keyword)
@@ -107,7 +107,7 @@ public class VaultService : IVaultService
         if (string.IsNullOrWhiteSpace(keyword))
         {
             return db.RootGroup.GetEntries(true)
-                .Select(e => ConvertEntryToDto(e))
+                .Select(e => ConvertEntryToDto(db, e))
                 .ToList();
         }
 
@@ -115,7 +115,7 @@ public class VaultService : IVaultService
             .Where(e => e.Strings.ReadSafe(PwDefs.TitleField).Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
                         e.Strings.ReadSafe(PwDefs.UserNameField).Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
                         e.Strings.ReadSafe(PwDefs.UrlField).Contains(keyword, StringComparison.OrdinalIgnoreCase))
-            .Select(e => ConvertEntryToDto(e))
+            .Select(e => ConvertEntryToDto(db, e))
             .ToList();
 
         return searchResults;
@@ -131,7 +131,7 @@ public class VaultService : IVaultService
 
         return db.RootGroup.GetEntries(true)
             .Where(e => !string.IsNullOrEmpty(GetOtpUrl(e)))
-            .Select(e => ConvertEntryToDto(e))
+            .Select(e => ConvertEntryToDto(db, e))
             .ToList();
     }
 
@@ -385,10 +385,13 @@ public class VaultService : IVaultService
         var icons = new List<IconDto>();
         foreach (var icon in Enum.GetValues(typeof(PwIcon)).Cast<PwIcon>())
         {
+            var (data, contentType) = KeePassIcons.GetIconData(icon);
             icons.Add(new IconDto
             {
                 Id = (int)icon,
-                Name = icon.ToString()
+                Name = icon.ToString(),
+                Data = data,
+                ContentType = contentType
             });
         }
         return Task.FromResult(icons);
@@ -566,17 +569,19 @@ public class VaultService : IVaultService
         return Path.Combine(vaultsPath, $"{username}.kdbx");
     }
 
-    private ItemDto ConvertGroupToDto(PwGroup group)
+    private ItemDto ConvertGroupToDto(KeePassLib.PwDatabase db, PwGroup group)
     {
         var childItems = new List<ItemDto>();
         foreach (var g in group.Groups)
         {
-            childItems.Add(ConvertGroupToDto(g));
+            childItems.Add(ConvertGroupToDto(db, g));
         }
         foreach (var e in group.Entries)
         {
-            childItems.Add(ConvertEntryToDto(e));
+            childItems.Add(ConvertEntryToDto(db, e));
         }
+
+        var (iconData, iconContentType) = group.SetIcon(db);
 
         return new GroupDto
         {
@@ -585,7 +590,8 @@ public class VaultService : IVaultService
             Type = ItemSubType.Group,
             IsGroup = true,
             LastModified = group.LastModificationTime,
-            Icon = group.IconId.ToString(),
+            Icon = iconData,
+            IconContentType = iconContentType,
             Description = group.Description,
             ChildCount = (int)(group.Groups.UCount + group.Entries.UCount),
             Children = childItems,
@@ -593,10 +599,12 @@ public class VaultService : IVaultService
         };
     }
 
-    private EntryDto ConvertEntryToDto(PwEntry entry)
+    private EntryDto ConvertEntryToDto(KeePassLib.PwDatabase db, PwEntry entry)
     {
         var itemSubType = GetItemSubType(entry);
         var isPxEntry = PxDefs.IsPxEntry(entry);
+
+        var (iconData, iconContentType) = entry.SetIcon(db);
 
         var entryDto = new EntryDto
         {
@@ -605,7 +613,8 @@ public class VaultService : IVaultService
             Type = itemSubType,
             IsGroup = false,
             LastModified = entry.LastModificationTime,
-            Icon = entry.IconId.ToString(),
+            Icon = iconData,
+            IconContentType = iconContentType,
             Description = entry.Description,
             Notes = entry.Strings.ReadSafe(PwDefs.NotesField),
             OtpUrl = GetOtpUrl(entry),

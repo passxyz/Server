@@ -10,5 +10,6 @@ public class ItemDto
     public bool IsGroup { get; set; }
     public DateTime LastModified { get; set; }
     public string? Icon { get; set; }
+    public string? IconContentType { get; set; }
     public string? Description { get; set; }
 }
