@@ -7,4 +7,5 @@ public class UserProfileDto
     public DateTime CreatedAt { get; set; }
     public DateTime LastLogin { get; set; }
     public bool IsDeviceLockEnabled { get; set; }
+    public string VaultFilePath { get; set; } = string.Empty;
 }

@@ -610,12 +610,6 @@ public class VaultService : IVaultService
         db.Save(logger);
     }
 
-    private string GetVaultPath(string username)
-    {
-        var vaultsPath = _configuration["Data:VaultsPath"] ?? "/data/vaults";
-        return Path.Combine(vaultsPath, $"{username}.kdbx");
-    }
-
     private ItemDto ConvertGroupToDto(KeePassLib.PwDatabase db, PwGroup group)
     {
         var childItems = new List<ItemDto>();

@@ -39,7 +39,10 @@ public class UserService : IUserService
             Email = user.Email,
             CreatedAt = user.CreatedAt,
             LastLogin = user.LastLogin ?? DateTime.MinValue,
-            IsDeviceLockEnabled = user.IsDeviceLockEnabled
+            IsDeviceLockEnabled = user.IsDeviceLockEnabled,
+            VaultFilePath = string.IsNullOrEmpty(user.VaultFilePath) 
+                ? GetVaultPath(username) 
+                : user.VaultFilePath
         };
     }
 
@@ -57,7 +60,10 @@ public class UserService : IUserService
             Email = user.Email,
             CreatedAt = user.CreatedAt,
             LastLogin = user.LastLogin ?? DateTime.MinValue,
-            IsDeviceLockEnabled = user.IsDeviceLockEnabled
+            IsDeviceLockEnabled = user.IsDeviceLockEnabled,
+            VaultFilePath = string.IsNullOrEmpty(user.VaultFilePath) 
+                ? GetVaultPath(user.UserName) 
+                : user.VaultFilePath
         };
     }
 
