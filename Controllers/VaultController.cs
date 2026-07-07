@@ -9,10 +9,12 @@ namespace PassXYZ.Server.Controllers;
 public class VaultController : ControllerBase
 {
     private readonly IVaultService _vaultService;
+    private readonly ILogger<VaultController> _logger;
 
-    public VaultController(IVaultService vaultService)
+    public VaultController(IVaultService vaultService, ILogger<VaultController> logger)
     {
         _vaultService = vaultService;
+        _logger = logger;
     }
 
     [HttpGet("groups/{groupId}/items")]
@@ -131,10 +133,27 @@ public class VaultController : ControllerBase
         var username = HttpContext.Items["Username"] as string;
         if (string.IsNullOrEmpty(username)) return Unauthorized();
 
-        var result = await _vaultService.UpdateEntry(username, entryId, request);
-        if (!result) return NotFound();
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .Select(e => $"{e.Key}: {string.Join(", ", e.Value!.Errors.Select(err => err.ErrorMessage))}");
+            _logger.LogWarning("UpdateEntry model validation failed for {EntryId}: {Errors}", entryId, string.Join(" | ", errors));
+            return BadRequest(ModelState);
+        }
 
-        return Ok();
+        try
+        {
+            var result = await _vaultService.UpdateEntry(username, entryId, request);
+            if (!result) return NotFound();
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating entry {EntryId}", entryId);
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("groups/{groupId}")]

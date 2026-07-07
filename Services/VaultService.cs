@@ -246,7 +246,10 @@ public class VaultService : IVaultService
             return false;
         }
 
-        entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, request.Name));
+        if (!string.IsNullOrEmpty(request.Name))
+        {
+            entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, request.Name));
+        }
         
         if (!string.IsNullOrEmpty(request.Username))
         {
@@ -333,8 +336,11 @@ public class VaultService : IVaultService
             return false;
         }
 
-        group.Name = request.Name;
-        group.Notes = request.Notes ?? string.Empty;
+        if (!string.IsNullOrEmpty(request.Name))
+        {
+            group.Name = request.Name;
+        }
+        group.Notes = request.Notes ?? group.Notes;
 
         if (!string.IsNullOrEmpty(request.Icon) && string.IsNullOrEmpty(request.IconContentType))
         {

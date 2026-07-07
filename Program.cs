@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using PassXYZ.Server.Services;
 using PassXYZ.Server.Middleware;
 using PassXYZ.Server.Data;
@@ -5,6 +6,11 @@ using PassXYZ.Server.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
