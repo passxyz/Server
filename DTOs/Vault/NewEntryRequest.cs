@@ -12,5 +12,7 @@ public class NewEntryRequest
     public string? Email { get; set; }
     public string? Mobile { get; set; }
     public string? Notes { get; set; }
+    public string? OtpUrl { get; set; }
     public Dictionary<string, string>? CustomFields { get; set; }
+    public List<FieldDto>? Fields { get; set; }
 }

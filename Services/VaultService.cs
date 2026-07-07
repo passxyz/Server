@@ -182,7 +182,20 @@ public class VaultService : IVaultService
             entry.Strings.Set(PwDefs.NotesField, new ProtectedString(true, request.Notes));
         }
 
-        if (request.CustomFields != null)
+        if (!string.IsNullOrEmpty(request.OtpUrl))
+        {
+            entry.CustomData.Set(PxDefs.PxCustomDataOtpUrl, request.OtpUrl);
+        }
+
+        if (request.Fields != null)
+        {
+            foreach (var field in request.Fields)
+            {
+                var key = field.EncodedKey ?? field.Key;
+                entry.Strings.Set(key, new ProtectedString(field.IsProtected, field.Value));
+            }
+        }
+        else if (request.CustomFields != null)
         {
             foreach (var (key, value) in request.CustomFields)
             {
@@ -267,10 +280,21 @@ public class VaultService : IVaultService
 
         if (!string.IsNullOrEmpty(request.OtpUrl))
         {
-            entry.Strings.Set("OTP", new ProtectedString(true, request.OtpUrl));
+            entry.CustomData.Set(PxDefs.PxCustomDataOtpUrl, request.OtpUrl);
         }
 
-        if (request.CustomFields != null)
+        if (request.Fields != null)
+        {
+            foreach (var field in request.Fields)
+            {
+                var key = field.EncodedKey ?? field.Key;
+                if (!field.IsBinary)
+                {
+                    entry.Strings.Set(key, new ProtectedString(field.IsProtected, field.Value));
+                }
+            }
+        }
+        else if (request.CustomFields != null)
         {
             foreach (var (key, value) in request.CustomFields)
             {
@@ -303,11 +327,7 @@ public class VaultService : IVaultService
         }
 
         group.Name = request.Name;
-
-        if (!string.IsNullOrEmpty(request.Icon))
-        {
-            group.IconId = (PwIcon)uint.Parse(request.Icon);
-        }
+        group.Notes = request.Notes ?? string.Empty;
 
         await SaveDatabase(db);
 
@@ -560,7 +580,9 @@ public class VaultService : IVaultService
 
     private async Task SaveDatabase(KeePassLib.PwDatabase db)
     {
-        db.Save(null);
+        db.DescriptionChanged = DateTime.UtcNow;
+        var logger = new PassXYZLib.KPCLibLogger();
+        db.Save(logger);
     }
 
     private string GetVaultPath(string username)
@@ -593,6 +615,7 @@ public class VaultService : IVaultService
             Icon = iconData,
             IconContentType = iconContentType,
             Description = group.Description,
+            Notes = group.Notes,
             ChildCount = (int)(group.Groups.UCount + group.Entries.UCount),
             Children = childItems,
             ParentId = group.ParentGroup != null ? new Guid(group.ParentGroup.Uuid.UuidBytes).ToString() : null

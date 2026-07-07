@@ -12,4 +12,5 @@ public class ItemDto
     public string? Icon { get; set; }
     public string? IconContentType { get; set; }
     public string? Description { get; set; }
+    public string? Notes { get; set; }
 }

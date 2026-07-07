@@ -143,10 +143,18 @@ public class VaultController : ControllerBase
         var username = HttpContext.Items["Username"] as string;
         if (string.IsNullOrEmpty(username)) return Unauthorized();
 
-        var result = await _vaultService.UpdateGroup(username, groupId, request);
-        if (!result) return NotFound();
+        try
+        {
+            var result = await _vaultService.UpdateGroup(username, groupId, request);
+            if (!result) return NotFound();
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[VaultController] UpdateGroup error: {ex.Message}\n{ex.StackTrace}");
+            return StatusCode(500, ex.Message);
+        }
     }
 
     [HttpDelete("entries/{entryId}")]
