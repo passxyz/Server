@@ -278,9 +278,16 @@ public class VaultService : IVaultService
             }
         }
 
-        if (!string.IsNullOrEmpty(request.Icon))
+        if (!string.IsNullOrEmpty(request.Icon) && string.IsNullOrEmpty(request.IconContentType))
         {
-            entry.IconId = (PwIcon)uint.Parse(request.Icon);
+            // Only parse as numeric PwIcon if IconContentType is not set.
+            // When IconContentType is set (e.g. "image/svg+xml", "image/png"),
+            // the Icon field contains base64-encoded image data from a prior read,
+            // not a numeric icon index, and should be skipped.
+            if (uint.TryParse(request.Icon, out var iconId))
+            {
+                entry.IconId = (PwIcon)iconId;
+            }
         }
 
         await SaveDatabase(db);
@@ -304,9 +311,16 @@ public class VaultService : IVaultService
 
         group.Name = request.Name;
 
-        if (!string.IsNullOrEmpty(request.Icon))
+        if (!string.IsNullOrEmpty(request.Icon) && string.IsNullOrEmpty(request.IconContentType))
         {
-            group.IconId = (PwIcon)uint.Parse(request.Icon);
+            // Only parse as numeric PwIcon if IconContentType is not set.
+            // When IconContentType is set (e.g. "image/svg+xml", "image/png"),
+            // the Icon field contains base64-encoded image data from a prior read,
+            // not a numeric icon index, and should be skipped.
+            if (uint.TryParse(request.Icon, out var iconId))
+            {
+                group.IconId = (PwIcon)iconId;
+            }
         }
 
         await SaveDatabase(db);
