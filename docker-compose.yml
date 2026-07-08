@@ -8,6 +8,7 @@ services:
       - "5182:8080"
     volumes:
       - ./.data:/app/.data
+      - ~/.local/share/icons:/app/icons
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - Jwt__Secret=${JWT_SECRET:-change-this-to-a-real-secret-in-production}
