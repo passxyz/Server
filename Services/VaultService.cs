@@ -201,6 +201,10 @@ public class VaultService : IVaultService
         {
             entry.CustomData.Set(PxDefs.PxCustomDataOtpUrl, request.OtpUrl);
         }
+        else if (request.OtpUrl == string.Empty)
+        {
+            entry.CustomData.Remove(PxDefs.PxCustomDataOtpUrl);
+        }
 
         if (request.Fields != null)
         {
@@ -319,6 +323,10 @@ public class VaultService : IVaultService
         if (!string.IsNullOrEmpty(request.OtpUrl))
         {
             entry.CustomData.Set(PxDefs.PxCustomDataOtpUrl, request.OtpUrl);
+        }
+        else if (request.OtpUrl == string.Empty)
+        {
+            entry.CustomData.Remove(PxDefs.PxCustomDataOtpUrl);
         }
 
         if (request.Fields != null)
