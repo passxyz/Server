@@ -266,6 +266,16 @@ public class VaultService : IVaultService
             return false;
         }
 
+        bool isPxEntry = PxDefs.IsPxEntry(entry);
+
+        // Compute the next available PxEntry field index by scanning encoded keys.
+        // Only keys with a valid 3-digit numeric prefix (000-999) are considered.
+        uint nextPxIndex = 0;
+        if (isPxEntry)
+        {
+            nextPxIndex = GetNextPxFieldIndex(entry);
+        }
+
         if (!string.IsNullOrEmpty(request.Name))
         {
             entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, request.Name));
@@ -273,27 +283,32 @@ public class VaultService : IVaultService
         
         if (!string.IsNullOrEmpty(request.Username))
         {
-            entry.Strings.Set(PwDefs.UserNameField, new ProtectedString(true, request.Username));
+            entry.Strings.Set(GetOrEncodePxKey(entry, isPxEntry, PwDefs.UserNameField, ref nextPxIndex),
+                new ProtectedString(true, request.Username));
         }
         
         if (!string.IsNullOrEmpty(request.Password))
         {
-            entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, request.Password));
+            entry.Strings.Set(GetOrEncodePxKey(entry, isPxEntry, PwDefs.PasswordField, ref nextPxIndex),
+                new ProtectedString(true, request.Password));
         }
         
         if (!string.IsNullOrEmpty(request.Url))
         {
-            entry.Strings.Set(PwDefs.UrlField, new ProtectedString(true, request.Url));
+            entry.Strings.Set(GetOrEncodePxKey(entry, isPxEntry, PwDefs.UrlField, ref nextPxIndex),
+                new ProtectedString(true, request.Url));
         }
         
         if (!string.IsNullOrEmpty(request.Email))
         {
-            entry.Strings.Set("Email", new ProtectedString(true, request.Email));
+            entry.Strings.Set(GetOrEncodePxKey(entry, isPxEntry, PxDefs.EmailField, ref nextPxIndex),
+                new ProtectedString(true, request.Email));
         }
         
         if (!string.IsNullOrEmpty(request.Mobile))
         {
-            entry.Strings.Set("Mobile", new ProtectedString(true, request.Mobile));
+            entry.Strings.Set(GetOrEncodePxKey(entry, isPxEntry, PxDefs.MobileField, ref nextPxIndex),
+                new ProtectedString(true, request.Mobile));
         }
         
         if (!string.IsNullOrEmpty(request.Notes))
@@ -310,7 +325,12 @@ public class VaultService : IVaultService
         {
             foreach (var field in request.Fields)
             {
-                var key = field.EncodedKey ?? field.Key;
+                var key = field.EncodedKey;
+                if (isPxEntry && string.IsNullOrEmpty(key))
+                {
+                    key = PxDefs.EncodeKey(field.Key, nextPxIndex++);
+                }
+                key = key ?? field.Key;
                 if (!field.IsBinary)
                 {
                     entry.Strings.Set(key, new ProtectedString(field.IsProtected, field.Value));
@@ -321,7 +341,8 @@ public class VaultService : IVaultService
         {
             foreach (var (key, value) in request.CustomFields)
             {
-                entry.Strings.Set(key, new ProtectedString(true, value));
+                var entryKey = isPxEntry ? PxDefs.EncodeKey(key, nextPxIndex++) : key;
+                entry.Strings.Set(entryKey, new ProtectedString(true, value));
             }
         }
 
@@ -612,6 +633,42 @@ public class VaultService : IVaultService
             : "application/octet-stream";
     }
 
+    /// <summary>
+    /// Compute the next available PxEntry field index by scanning all encoded keys in the entry.
+    /// A key is considered encoded if it has at least 3 characters and the first 3 characters
+    /// parse as a valid uint (000-999), matching the PxEntryKeyIndexFormat.
+    /// </summary>
+    private static uint GetNextPxFieldIndex(PwEntry entry)
+    {
+        uint maxIndex = 0;
+        foreach (var kvp in entry.Strings)
+        {
+            if (kvp.Key.Length > PxDefs.PxEntryKeyDigits &&
+                uint.TryParse(kvp.Key.Substring(0, (int)PxDefs.PxEntryKeyDigits), out var idx) &&
+                idx >= maxIndex)
+            {
+                maxIndex = idx + 1;
+            }
+        }
+        return maxIndex;
+    }
+
+    /// <summary>
+    /// For a PxEntry, find the existing encoded key for a standard field, or encode a new one.
+    /// For non-PxEntry, returns the plain key directly.
+    /// </summary>
+    private static string GetOrEncodePxKey(PwEntry entry, bool isPxEntry, string plainKey, ref uint nextIndex)
+    {
+        if (!isPxEntry)
+            return plainKey;
+
+        var encodedKey = PxDefs.FindEncodeKey(entry.Strings, plainKey);
+        if (!string.IsNullOrEmpty(encodedKey))
+            return encodedKey;
+
+        return PxDefs.EncodeKey(plainKey, nextIndex++);
+    }
+
     private PwGroup? GetGroupById(KeePassLib.PwDatabase db, string groupId)
     {
         if (groupId.Equals("root", StringComparison.OrdinalIgnoreCase))
@@ -693,19 +750,19 @@ public class VaultService : IVaultService
                 continue;
             }
 
-            var decodedKey = isPxEntry ? PxDefs.DecodeKey(kvp.Key) : kvp.Key;
+            // For PxEntry, decode the 3-digit prefix. Guard against keys that are too short
+            // or not properly encoded (e.g. legacy data), falling back to the raw key.
+            var decodedKey = kvp.Key;
+            if (isPxEntry)
+            {
+                if (kvp.Key.Length > PxDefs.PxEntryKeyDigits &&
+                    uint.TryParse(kvp.Key.Substring(0, (int)PxDefs.PxEntryKeyDigits), out _))
+                {
+                    decodedKey = PxDefs.DecodeKey(kvp.Key);
+                }
+            }
             var value = kvp.Value.ReadString();
             var isProtected = kvp.Value.IsProtected;
-
-            var fieldDto = new FieldDto
-            {
-                Key = decodedKey,
-                Value = value,
-                IsProtected = isProtected,
-                IsBinary = false,
-                EncodedKey = isPxEntry ? kvp.Key : null
-            };
-            fields.Add(fieldDto);
 
             switch (decodedKey)
             {
@@ -725,7 +782,18 @@ public class VaultService : IVaultService
                     entryDto.Mobile = value;
                     break;
                 default:
+                    // Only include custom fields in the fields list; standard fields
+                    // are already mapped to top-level DTO properties above.
                     customFields[decodedKey] = value;
+                    var fieldDto = new FieldDto
+                    {
+                        Key = decodedKey,
+                        Value = value,
+                        IsProtected = isProtected,
+                        IsBinary = false,
+                        EncodedKey = isPxEntry ? kvp.Key : null
+                    };
+                    fields.Add(fieldDto);
                     break;
             }
         }
