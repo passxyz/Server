@@ -150,31 +150,46 @@ public class VaultService : IVaultService
         }
 
         var entry = new PwEntry(true, true);
+
+        // Set item sub-type in CustomData so that IsPxEntry/IsNotes can recognize it
+        if (request.Type != ItemSubType.Entry)
+        {
+            entry.CustomData.Set(PxDefs.PxCustomDataItemSubType, request.Type.ToString());
+        }
+
+        bool isPxEntry = request.Type == ItemSubType.PxEntry;
+        uint pxFieldIndex = 0;
+
         entry.Strings.Set(PwDefs.TitleField, new ProtectedString(true, request.Name));
         
         if (!string.IsNullOrEmpty(request.Username))
         {
-            entry.Strings.Set(PwDefs.UserNameField, new ProtectedString(true, request.Username));
+            var key = isPxEntry ? PxDefs.EncodeKey(PwDefs.UserNameField, pxFieldIndex++) : PwDefs.UserNameField;
+            entry.Strings.Set(key, new ProtectedString(true, request.Username));
         }
         
         if (!string.IsNullOrEmpty(request.Password))
         {
-            entry.Strings.Set(PwDefs.PasswordField, new ProtectedString(true, request.Password));
+            var key = isPxEntry ? PxDefs.EncodeKey(PwDefs.PasswordField, pxFieldIndex++) : PwDefs.PasswordField;
+            entry.Strings.Set(key, new ProtectedString(true, request.Password));
         }
         
         if (!string.IsNullOrEmpty(request.Url))
         {
-            entry.Strings.Set(PwDefs.UrlField, new ProtectedString(true, request.Url));
+            var key = isPxEntry ? PxDefs.EncodeKey(PwDefs.UrlField, pxFieldIndex++) : PwDefs.UrlField;
+            entry.Strings.Set(key, new ProtectedString(true, request.Url));
         }
         
         if (!string.IsNullOrEmpty(request.Email))
         {
-            entry.Strings.Set("Email", new ProtectedString(true, request.Email));
+            var key = isPxEntry ? PxDefs.EncodeKey(PxDefs.EmailField, pxFieldIndex++) : PxDefs.EmailField;
+            entry.Strings.Set(key, new ProtectedString(true, request.Email));
         }
         
         if (!string.IsNullOrEmpty(request.Mobile))
         {
-            entry.Strings.Set("Mobile", new ProtectedString(true, request.Mobile));
+            var key = isPxEntry ? PxDefs.EncodeKey(PxDefs.MobileField, pxFieldIndex++) : PxDefs.MobileField;
+            entry.Strings.Set(key, new ProtectedString(true, request.Mobile));
         }
         
         if (!string.IsNullOrEmpty(request.Notes))
@@ -191,6 +206,10 @@ public class VaultService : IVaultService
         {
             foreach (var field in request.Fields)
             {
+                if (isPxEntry && string.IsNullOrEmpty(field.EncodedKey))
+                {
+                    field.EncodedKey = PxDefs.EncodeKey(field.Key, pxFieldIndex++);
+                }
                 var key = field.EncodedKey ?? field.Key;
                 entry.Strings.Set(key, new ProtectedString(field.IsProtected, field.Value));
             }
@@ -199,7 +218,8 @@ public class VaultService : IVaultService
         {
             foreach (var (key, value) in request.CustomFields)
             {
-                entry.Strings.Set(key, new ProtectedString(true, value));
+                var entryKey = isPxEntry ? PxDefs.EncodeKey(key, pxFieldIndex++) : key;
+                entry.Strings.Set(entryKey, new ProtectedString(true, value));
             }
         }
 

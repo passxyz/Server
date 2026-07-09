@@ -1,9 +1,14 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using PassXYZ.Server.Services;
 using PassXYZ.Server.Middleware;
 using PassXYZ.Server.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var assemblyVersion = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+    .InformationalVersion ?? "0.0.0";
 
 builder.Services.AddControllers();
 
@@ -19,7 +24,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "PassXYZ.Server", Version = "v1" });
+    c.SwaggerDoc("v1", new() { Title = "PassXYZ.Server", Version = assemblyVersion });
 });
 
 builder.Services.AddSingleton<IJwtService, JwtService>();
@@ -59,7 +64,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "PassXYZ.Server v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", $"PassXYZ.Server {assemblyVersion}");
     });
 }
 
