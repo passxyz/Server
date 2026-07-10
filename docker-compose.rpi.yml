@@ -1,0 +1,53 @@
+# ============================================================
+# Docker Compose — PassXYZ.Server on Raspberry Pi (ARM)
+# ============================================================
+# 部署步骤：
+# 1. 在开发机上交叉编译 ARM 版本：
+#    dotnet publish -c Release -r linux-arm64 --self-contained false -o ./release
+# 2. 将 release 目录拷贝到树莓派的目标路径（默认 ./release）
+# 3. 在树莓派上启动：
+#    docker compose -f docker-compose.rpi.yml up -d
+# ============================================================
+
+services:
+  passxyz-server:
+    image: mcr.microsoft.com/dotnet/aspnet:10.0
+    container_name: passxyz-server
+    restart: unless-stopped
+
+    # ── ARM 平台声明 ──────────────────────────────────
+    platform: linux/arm64
+
+    # ── 用户与工作目录 ────────────────────────────────
+    # 显式指定与镜像默认一致的 app 用户，避免 bind mount 写入时使用 root
+    user: "1654:1654"
+    working_dir: /app
+    entrypoint: ["dotnet", "PassXYZ.Server.dll"]
+
+    # ── 端口映射 ──────────────────────────────────────
+    ports:
+      - "5182:8080"
+
+    # ── 环境变量 ──────────────────────────────────────
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: Production
+
+      # JWT 认证
+      Jwt__Secret: ${JWT_SECRET:-change-this-to-a-real-secret-in-production}
+      Jwt__ExpiresInMinutes: ${JWT_EXPIRES_IN:-60}
+
+      # Cloudflare Access（可选）
+      Cloudflare__Audience: ${CF_AUDIENCE:-}
+      Cloudflare__JwksUrl: ${CF_JWKS_URL:-}
+
+    # ── 挂载卷 ────────────────────────────────────────
+    volumes:
+      # 预编译的 ARM 发布文件 → 容器 /app 目录
+      # 注意：不能使用 :ro，否则 /app 变为只读文件系统，
+      # Docker 无法在其下创建 /app/.data 挂载点
+      - ./release:/app
+      # 持久化数据目录（读写）
+      - ./.data:/app/.data
+      # 图标目录（可选）
+      - ~/.local/share/icons:/app/icons:ro
