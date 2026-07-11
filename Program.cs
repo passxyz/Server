@@ -31,6 +31,9 @@ builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IVaultSessionManager, VaultSessionManager>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IVaultService, VaultService>();
+builder.Services.AddSingleton<IDashboardDbContextFactory, DashboardDbContextFactory>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 builder.Services.AddScoped<UsersDbContext>();
 
 var app = builder.Build();
