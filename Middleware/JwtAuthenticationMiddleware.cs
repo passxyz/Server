@@ -15,7 +15,7 @@ public class JwtAuthenticationMiddleware
     {
         var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
-        var allowAnonymousPaths = new[] { "/api/user/login", "/api/user/signup" };
+        var allowAnonymousPaths = new[] { "/api/user/login", "/api/user/signup", "/api/apps.json", "/api/agents.json", "/api/widgets.json" };
         if (allowAnonymousPaths.Any(p => context.Request.Path.StartsWithSegments(p)))
         {
             await _next(context);
