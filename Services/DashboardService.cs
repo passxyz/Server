@@ -28,7 +28,22 @@ public class DashboardService : IDashboardService
             .Where(d => d.UserId == userId)
             .ToListAsync();
 
-        return dashboards.Select(ConvertToDto);
+        var dashboardIds = dashboards.Select(d => d.Id).ToList();
+        var widgets = await db.Widgets
+            .Where(w => dashboardIds.Contains(w.DashboardId))
+            .ToListAsync();
+
+        var widgetLookup = widgets.GroupBy(w => w.DashboardId).ToDictionary(g => g.Key, g => g.Select(ConvertToWidgetDto).ToList());
+
+        return dashboards.Select(dashboard =>
+        {
+            var dto = ConvertToDto(dashboard);
+            if (widgetLookup.TryGetValue(dashboard.Id, out var dashboardWidgets))
+            {
+                dto.Widgets = dashboardWidgets;
+            }
+            return dto;
+        });
     }
 
     public async Task<DashboardDto> GetDashboardAsync(string userId, string dashboardId)
@@ -38,7 +53,19 @@ public class DashboardService : IDashboardService
         var dashboard = await db.Dashboards
             .FirstOrDefaultAsync(d => d.UserId == userId && d.Id == dashboardId);
 
-        return dashboard != null ? ConvertToDto(dashboard) : null!;
+        if (dashboard == null)
+        {
+            return null!;
+        }
+
+        var widgets = await db.Widgets
+            .Where(w => w.DashboardId == dashboardId)
+            .ToListAsync();
+
+        var dto = ConvertToDto(dashboard);
+        dto.Widgets = widgets.Select(ConvertToWidgetDto).ToList();
+
+        return dto;
     }
 
     public async Task<DashboardDto> CreateDashboardAsync(string userId, DashboardCreateRequest request)
