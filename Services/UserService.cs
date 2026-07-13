@@ -48,7 +48,7 @@ public class UserService : IUserService
 
     public async Task<UserProfileDto?> GetUserByEmail(string email)
     {
-        var user = _usersDbContext.Users.FirstOrDefault(u => u.Email == email);
+        var user = _usersDbContext.Users.FirstOrDefault(u => u.Email.ToLower() == email.ToLower());
         if (user == null)
         {
             return null;
@@ -120,9 +120,15 @@ public class UserService : IUserService
         return _usersDbContext.Users.Select(u => u.UserName).ToList();
     }
 
-    public async Task<LoginResult> Login(LoginRequest request, string email, string ipAddress)
+    public async Task<LoginResult> Login(LoginRequest request, string? email, string ipAddress)
     {
-        var user = _usersDbContext.Users.FirstOrDefault(u => u.Email == email);
+        var user = _usersDbContext.Users.FirstOrDefault(u => u.UserName == request.Username);
+        
+        if (user == null && !string.IsNullOrEmpty(email))
+        {
+            user = _usersDbContext.Users.FirstOrDefault(u => u.Email.ToLower() == email.ToLower());
+        }
+
         if (user == null)
         {
             return new LoginResult { Success = false };

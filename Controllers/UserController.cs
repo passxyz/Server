@@ -35,11 +35,9 @@ public class UserController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var email = HttpContext.Items["Email"] as string;
-        if (string.IsNullOrEmpty(email))
-        {
-            email = $"{request.Username}@localhost";
-        }
+        var email = string.IsNullOrEmpty(request.Email) 
+            ? $"{request.Username}@localhost" 
+            : request.Email;
 
         var result = await _userService.CreateUser(request, email);
         if (!result)
@@ -47,7 +45,8 @@ public class UserController : ControllerBase
             return Conflict("User already exists");
         }
 
-        return Ok();
+        var profile = await _userService.GetUserProfile(request.Username);
+        return Ok(profile);
     }
 
     [HttpDelete("{username}")]
@@ -76,15 +75,8 @@ public class UserController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var email = HttpContext.Items["Email"] as string;
-        if (string.IsNullOrEmpty(email))
-        {
-            email = $"{request.Username}@localhost";
-        }
-
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        var result = await _userService.Login(request, email, ipAddress);
+        var result = await _userService.Login(request, request.Email, ipAddress);
 
         if (!result.Success)
         {
@@ -111,8 +103,7 @@ public class UserController : ControllerBase
         {
             Token = result.Token ?? string.Empty,
             ExpiresAt = result.ExpiresAt ?? DateTime.Now,
-            Username = result.Username ?? string.Empty,
-            Email = profile?.Email ?? string.Empty
+            User = profile
         });
     }
 
@@ -143,5 +134,13 @@ public class UserController : ControllerBase
     {
         var users = await _userService.GetUsersList();
         return Ok(users);
+    }
+
+    [HttpGet("by-email")]
+    public async Task<IActionResult> GetUserByEmail([FromQuery] string email)
+    {
+        var profile = await _userService.GetUserByEmail(email);
+        if (profile == null) return NotFound();
+        return Ok(profile);
     }
 }

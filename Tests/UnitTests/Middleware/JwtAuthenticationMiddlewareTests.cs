@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using PassXYZ.Server.Middleware;
 using PassXYZ.Server.Services;
@@ -10,11 +11,13 @@ public class JwtAuthenticationMiddlewareTests
 {
     private readonly Mock<IJwtService> _mockJwtService;
     private readonly IConfiguration _config;
+    private readonly Mock<ILogger<JwtAuthenticationMiddleware>> _mockLogger;
 
     public JwtAuthenticationMiddlewareTests()
     {
         _mockJwtService = new Mock<IJwtService>();
         _config = new ConfigurationBuilder().Build();
+        _mockLogger = new Mock<ILogger<JwtAuthenticationMiddleware>>();
     }
 
     [Fact]
@@ -69,7 +72,7 @@ public class JwtAuthenticationMiddlewareTests
         {
             innerContext.Response.StatusCode = StatusCodes.Status200OK;
             return Task.CompletedTask;
-        });
+        }, _mockLogger.Object);
 
         await middleware.InvokeAsync(context, _mockJwtService.Object);
     }

@@ -9,7 +9,7 @@ public interface IUserService
     Task<bool> CreateUser(SignUpRequest request, string email);
     Task<bool> DeleteUser(string username);
     Task<List<string>> GetUsersList();
-    Task<LoginResult> Login(LoginRequest request, string email, string ipAddress);
+    Task<LoginResult> Login(LoginRequest request, string? email, string ipAddress);
     Task Logout(string username);
     Task<bool> UpdateUserProfile(string username, UpdateProfileRequest request);
 }
