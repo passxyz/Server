@@ -296,6 +296,27 @@ public class UserService : IUserService
             {
                 File.Delete(userDbPath);
             }
+
+            var oldUserDbPath = Path.Combine(
+                _configuration["Data:UserDatabasesPath"] ?? "/data/users",
+                username,
+                "dashboards.db"
+            );
+            if (File.Exists(oldUserDbPath))
+            {
+                File.Delete(oldUserDbPath);
+                var userDir = Path.GetDirectoryName(oldUserDbPath);
+                if (!string.IsNullOrEmpty(userDir) && Directory.Exists(userDir))
+                {
+                    try
+                    {
+                        Directory.Delete(userDir);
+                    }
+                    catch (IOException)
+                    {
+                    }
+                }
+            }
         }
         catch
         {
@@ -340,6 +361,7 @@ public class UserService : IUserService
     private string GetUserDbPath(string username)
     {
         var userDatabasesPath = _configuration["Data:UserDatabasesPath"] ?? "/data/users";
-        return Path.Combine(userDatabasesPath, $"{username}.db");
+        var encodedUsername = Base58CheckEncoding.ToBase58String(username);
+        return Path.Combine(userDatabasesPath, $"{encodedUsername}.db");
     }
 }
