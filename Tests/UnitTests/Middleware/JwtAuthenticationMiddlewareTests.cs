@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PassXYZ.Server.Middleware;
@@ -12,12 +14,14 @@ public class JwtAuthenticationMiddlewareTests
     private readonly Mock<IJwtService> _mockJwtService;
     private readonly IConfiguration _config;
     private readonly Mock<ILogger<JwtAuthenticationMiddleware>> _mockLogger;
+    private readonly Mock<IWebHostEnvironment> _mockEnv;
 
     public JwtAuthenticationMiddlewareTests()
     {
         _mockJwtService = new Mock<IJwtService>();
         _config = new ConfigurationBuilder().Build();
         _mockLogger = new Mock<ILogger<JwtAuthenticationMiddleware>>();
+        _mockEnv = new Mock<IWebHostEnvironment>();
     }
 
     [Fact]
@@ -66,13 +70,40 @@ public class JwtAuthenticationMiddlewareTests
         Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
     }
 
+    [Fact]
+    public async Task InvokeAsync_WithNoToken_InDevelopment_ShouldBypassAuth()
+    {
+        _mockEnv.Setup(e => e.IsDevelopment()).Returns(true);
+
+        var context = CreateHttpContext("/api/vault/groups/root/items");
+
+        await TestMiddleware(context);
+
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.Equal("dev@localhost", context.Items["Username"]);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithNoToken_InDevelopment_WithEmail_ShouldUseEmailAsUsername()
+    {
+        _mockEnv.Setup(e => e.IsDevelopment()).Returns(true);
+
+        var context = CreateHttpContext("/api/vault/groups/root/items");
+        context.Items["Email"] = "test@example.com";
+
+        await TestMiddleware(context);
+
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.Equal("test@example.com", context.Items["Username"]);
+    }
+
     private async Task TestMiddleware(HttpContext context)
     {
         var middleware = new JwtAuthenticationMiddleware(next: (innerContext) =>
         {
             innerContext.Response.StatusCode = StatusCodes.Status200OK;
             return Task.CompletedTask;
-        }, _mockLogger.Object);
+        }, _mockLogger.Object, _mockEnv.Object);
 
         await middleware.InvokeAsync(context, _mockJwtService.Object);
     }
